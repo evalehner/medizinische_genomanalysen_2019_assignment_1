@@ -3,7 +3,10 @@
 ## Overview
 * Fork and clone the repository
 * Complete the python program, based on the template, to calculate various properties
-* Push to your repository
+* Complete all TODOs
+* **Hint**: Call the individual methods from *print_summary*
+* Commit (often)
+* Push to **your** repository
 * Look **below** for your gene
 * The following tools might be of help:
   * Biopython (http://biopython.org/)
