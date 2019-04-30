@@ -23,6 +23,8 @@
 
 ## Individual genes
 
+**HINT** Use a different gene if you do not find reads in your gene
+
 | Student | Gene | 
 | ----- | --- |
 | Arnold Vivienne | KCNE1 |
