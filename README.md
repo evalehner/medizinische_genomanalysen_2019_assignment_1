@@ -1,6 +1,7 @@
 # Medizinische Genomanalysen 2019 - Assignment 1
 
 ## News
+* Deadline: 20.05.2019
 * Gene Symbol - just plug in the name of your gene
 * Region_of_gene - report the exons of your gene
 * Report the number of properly paired and indel reads
