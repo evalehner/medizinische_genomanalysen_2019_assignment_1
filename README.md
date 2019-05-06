@@ -1,5 +1,11 @@
 # Medizinische Genomanalysen 2019 - Assignment 1
 
+## News
+* Gene Symbol - just plug in the name of your gene
+* Region_of_gene - report the exons of your gene
+* Report the number of properly paired and indel reads
+
+
 ## Overview
 * Fork and clone the repository
 * Complete the python program, based on the template, to calculate various properties
