@@ -12,19 +12,28 @@ __author__ = 'Eva V. Lehner'
 ## TODO
 ##
 
+currentGenome = "hg38"
+currentUCSC = "coordinates"
+currentBam = "../data/chr21.bam"
+
 
 class Assignment1:
     
-    def __init__(self):
+    def __init__(self, reference_geneome, ucscFile2Write, bam):
         ## Your gene of interest
         # insert gen name
         self.gene = "ETS2"
         print("Query Gene: " + self.gene)
+
+        self.reference = reference_geneome
+        self.ucsc = ucscFile2Write
+        self.bam = bam
+
     
-    def download_gene_coordinates(self, genome_reference, file_name):
+    def download_gene_coordinates(self):
         # Only tests if file exists in current working directory
         DataFiles = os.listdir('.')
-        if not file_name in DataFiles:
+        if not self.ucsc in DataFiles:
             print("Connecting to UCSC to fetch data")
 
             cnx = mysql.connector.connect(host='genome-mysql.cse.ucsc.edu', user='genomep', passwd='password', db=genome_reference)
@@ -49,7 +58,7 @@ class Assignment1:
 
             ## Write to file
             ## TODO this may need some work
-            with open(file_name, "w") as fh:
+            with open(self.ucsc, "w") as fh:
                 for row in cursor:
                     fh.write(str(row) + "\n")
 
@@ -63,11 +72,11 @@ class Assignment1:
         else:
             print("Coordinates were already downloaded")
         
-    def get_coordinates_of_gene(self, ucsc_file, gene_name):
+    def get_coordinates_of_gene(self):
         gene_coordinates = []
-        with open(ucsc_file, "r") as fh:
+        with open(self.ucsc, "r") as fh:
             for line in fh.readlines():
-                if line.find(gene_name) != -1:
+                if line.find(self.gene) != -1:
                     # could be done with regex
                     line = line.replace("'", "")
                     line = line.replace("(", "")
@@ -82,16 +91,16 @@ class Assignment1:
     def get_gene_symbol(self):
         return self.gene
 
-    def get_sam_header(self, samfile):
-        currentFile = pysam.AlignmentFile(samfile, "rb")
+    def get_sam_header(self):
+        currentFile = pysam.AlignmentFile(self.bam, "rb")
         header = currentFile.header
         currentFile.close()
 
         return header
 
-    def get_properly_paired_reads_of_gene(self, inputBam, ucsc_file, gene_name):
-        currentFile = pysam.AlignmentFile(inputBam, "rb")
-        coordinates = self.get_coordinates_of_gene(ucsc_file, gene_name)
+    def get_properly_paired_reads_of_gene(self):
+        currentFile = pysam.AlignmentFile(self.bam, "rb")
+        coordinates = self.get_coordinates_of_gene(self.ucsc, self.gene)
 
         paired_read_count = 0
         for read in currentFile.fetch(contig=coordinates[0], start=int(coordinates[1]), stop=int(coordinates[2])):
@@ -101,11 +110,11 @@ class Assignment1:
 
         return paired_read_count
 
-    def get_gene_reads_with_indels(self, inputBam):
+    def get_gene_reads_with_indels(self):
         # extract reads where there is I od D in cigar string (col6)
         # memory inefficient :(
 
-        view = shlex.split("samtools view "+ inputBam)
+        view = shlex.split("samtools view "+ self.bam)
         callView = subprocess.Popen(view, stdout=subprocess.PIPE)
         cut = shlex.split("cut -f 6")
         callCut = subprocess.Popen(cut, stdin=callView.stdout, stdout=subprocess.PIPE)
@@ -115,17 +124,17 @@ class Assignment1:
 
         return out
 
-    def calculate_total_average_coverage(self, inputBam, ucsc_file):
+    def calculate_total_average_coverage(self):
         # Coordinates in pysam are 0 based!
         # Coordinates of UCSC File are 0 based!
         # --> No conversion conflicts or sth!
 
-        header = self.get_sam_header(samfile=inputBam)
+        header = self.get_sam_header()
         totalRefLength=0
         for item in header.references:
             totalRefLength += header.get_reference_length(item)
 
-        samfile = pysam.AlignmentFile(inputBam, "rb")
+        samfile = pysam.AlignmentFile(self.bam, "rb")
         coverage = 0
 
         for pileupcolumn in samfile.pileup():
@@ -136,12 +145,12 @@ class Assignment1:
         print("average genome coverage: %s \ntotal genome length: %s \n" % (averageCoverageOverGene,  totalRefLength))
 
         
-    def calculate_gene_average_coverage(self, inputBam, ucsc_file, gene_name):
+    def calculate_gene_average_coverage(self):
         # Coordinates in pysam are 0 based!
         # Coordinates of UCSC File are 0 based!
         # --> No conversion conflicts or sth!
-        samfile = pysam.AlignmentFile(inputBam, "rb")
-        coordinates = self.get_coordinates_of_gene(ucsc_file, gene_name)
+        samfile = pysam.AlignmentFile(self.bam, "rb")
+        coordinates = self.get_coordinates_of_gene()
         chrom = coordinates[0]
 
         coverage = 0
@@ -157,17 +166,17 @@ class Assignment1:
         print("UNFINISHED")
 
 
-    def get_number_mapped_reads(self, samfile):
-        currentFile = pysam.AlignmentFile(samfile, "rb")
+    def get_number_mapped_reads(self):
+        currentFile = pysam.AlignmentFile(self.bam, "rb")
         mappedReads = currentFile.mapped
         currentFile.close()
         return mappedReads
 
     def get_region_of_gene(self, ucsc_file, gene_name):
         exon_coordinates = []
-        with open(ucsc_file, "r") as fh:
+        with open(self.ucsc, "r") as fh:
             for line in fh.readlines():
-                if line.find(gene_name) != -1:
+                if line.find(self.gene) != -1:
                     line = line.split(',')
                     exon_coordinates.append(line[7:-1])
                     break # If more than one entries of gene coordinates exist in file, process only first one.
@@ -176,12 +185,12 @@ class Assignment1:
         return exon_coordinates
 
         
-    def get_number_of_exons(self, gene_name, ucsc_file):
+    def get_number_of_exons(self):
         # Gene is contained twice in ucsc file. Here, only exon count of first record is included.
         exon_coordinates = []
-        with open(ucsc_file, "r") as fh:
+        with open(self.ucsc, "r") as fh:
             for line in fh.readlines():
-                if line.find(gene_name) != -1:
+                if line.find(self.gene) != -1:
                     line = line.split(',')
                     exon_coordinates.append(line[7:-1])
 
@@ -197,27 +206,25 @@ class Assignment1:
                 break
         return exonCount
 
-    def print_summary(self, ucsc_file):
-        #self.download_gene_coordinates("hg38", "coordinates")
-        #coordinates= self.get_coordinates_of_gene(ucsc_file, gene_name=self.gene)
+    def print_summary(self):
+        #self.download_gene_coordinates()
+        #coordinates= self.get_coordinates_of_gene()
         #print("Coordinates: ", coordinates)
-        #header = self.get_sam_header(samfile='../data/chr21.bam')
+        #header = self.get_sam_header()
 
-        #mapped = self.get_number_mapped_reads(samfile='../data/chr21.bam')
+        #mapped = self.get_number_mapped_reads()
 
         #print("Number of mapped reads:", mapped)
-        #print("Number of Exons: ", self.get_number_of_exons(self.gene, ucsc_file))
+        #print("Number of Exons: ", self.get_number_of_exons())
 
         # change to count
-        #print("Number of properly paired reads :", self.get_properly_paired_reads_of_gene(inputBam='../data/chr21.bam', ucsc_file=ucsc_file, gene_name=self.gene))
+        #print("Number of properly paired reads :", self.get_properly_paired_reads_of_gene())
         #print("Gene Symbol: ", self.get_gene_symbol())
-        #print("Exon Coordinates: ", self.get_region_of_gene(ucsc_file="coordinates", gene_name=self.gene)) # exon coordinates
-
-        print("TODO")
+        #print("Exon Coordinates: ", self.get_region_of_gene()) # exon coordinates
 
 
-        self.calculate_gene_average_coverage(inputBam='../data/chr21.bam', ucsc_file="coordinates", gene_name=self.gene)
-        self.calculate_total_average_coverage(inputBam='../data/chr21.bam', ucsc_file="coordinates")
+        self.calculate_gene_average_coverage()
+        self.calculate_total_average_coverage()
 
         #nReadsWithIndels = self.get_gene_reads_with_indels(inputBam='../data/chr21.bam') # get counts
         #print("Number of Reads with Indels: " , nReadsWithIndels)
@@ -225,9 +232,9 @@ class Assignment1:
     
 def main():
     print("Assignment 1")
-    assignment1 = Assignment1()
+    assignment1 = Assignment1(currentGenome, currentUCSC, currentBam)
 
-    assignment1.print_summary(ucsc_file="coordinates")
+    assignment1.print_summary()
 
     print("Done with assignment 1")
     
