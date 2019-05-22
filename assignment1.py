@@ -79,7 +79,6 @@ class Assignment1:
     def get_sam_header(self):
         currentFile = pysam.AlignmentFile(self.bam, "rb")
         header = currentFile.header
-        print(type(header))
         currentFile.close()
         return header
 
@@ -97,17 +96,16 @@ class Assignment1:
 
     def get_gene_reads_with_indels(self):
         # extract reads where there is I od D in cigar string (col6)
-        # memory inefficient :(
+        # takes time !
+        nIndelReads = 0
+        currentFile = pysam.AlignmentFile(self.bam, "rb")
+        for read in currentFile.fetch():
+            if not read.is_unmapped:
+                cigarString = read.cigarstring
+                if (cigarString.find('I') != -1) or cigarString.find('D') != -1:
+                    nIndelReads += 1
 
-        view = shlex.split("samtools view "+ self.bam)
-        callView = subprocess.Popen(view, stdout=subprocess.PIPE)
-        cut = shlex.split("cut -f 6")
-        callCut = subprocess.Popen(cut, stdin=callView.stdout, stdout=subprocess.PIPE)
-        countCigar = shlex.split("grep -c -E 'I|D'")
-        nInDels = subprocess.Popen(countCigar, stdin=callCut.stdout, stdout=subprocess.PIPE)
-        out = nInDels.stdout.read()
-
-        return out
+        return nIndelReads
 
     def calculate_total_average_coverage(self):
         # Coordinates in pysam are 0 based!
@@ -196,18 +194,15 @@ class Assignment1:
         print("Number of properly paired reads: \t %s  " % (self.get_properly_paired_reads_of_gene()))
         print("Gene Symbol: \t %s " % (self.get_gene_symbol()))
         print("Exon Coordinates:  \n \t %s" % (self.get_region_of_gene())) # exon coordinates
-
         print("Average Coverage over gene: \t%s  " % (self.calculate_gene_average_coverage()))
         print("Average Coverage over genome: \t%s  " % (self.calculate_total_average_coverage()))
-
         print("Number of Alignments with Indesl:\t%s" %(self.get_gene_reads_with_indels()))
-
-
-        # Fix this
         header = self.get_sam_header()
         print("Header of file %s" % (self.bam))
-        # for line in header.iteritems():
-        #    print(line)
+        for item in header.iteritems():
+            print(item)
+
+
 def main():
     print("Assignment 1")
     assignment1 = Assignment1(currentGenome, currentUCSC, currentBam, currentGenename)
